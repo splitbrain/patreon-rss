@@ -70,8 +70,6 @@ class PatreonRSS
     public function rss()
     {
         $data = $this->getData();
-
-        header('Content-Type: application/rss+xml');
         echo '<?xml version="1.0"?>';
         echo '<rss version="2.0">';
         echo '<channel>';
@@ -81,6 +79,30 @@ class PatreonRSS
         }
         echo '</channel>';
         echo '</rss>';
+    }
+
+    /**
+     * Output the RSS but use a cache
+     *
+     * Note: this does absolutely no error checking and will just ignore errors. You have
+     * to make sure the given $dir exists and is writable. Otherwise there will be no caching
+     *
+     * @param string $dir directory in which to store cache files - has to be writable
+     * @param int $maxage maximum age for the cache in seconds
+     */
+    public function cachedRSS($dir, $maxage)
+    {
+        $cachefile = $dir.'/'.$this->filter['creator_id'].'.xml';
+        $lastmod = @filemtime($cachefile);
+        if(time() - $lastmod < $maxage) {
+            echo file_get_contents($cachefile);
+            return;
+        }
+        ob_start();
+        $this->rss();
+        $rss = ob_get_clean();
+        @file_put_contents($cachefile, $rss); // we just ignore any errors
+        echo $rss;
     }
 
     /**
@@ -189,5 +211,6 @@ class PatreonRSS
 }
 
 // main
+header('Content-Type: application/rss+xml');
 $patreon = new PatreonRSS($CREATOR_ID);
-$patreon->rss();
+$patreon->cachedRSS(__DIR__, 60*60); // cache for an hour
