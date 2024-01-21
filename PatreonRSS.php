@@ -254,7 +254,7 @@ class PatreonRSS
 }
 
 // main
-header('Content-Type: application/rss+xml');
+header('Content-Disposition: inline; filename="'.$CREATOR_ID.'.rss"; Content-Type: application/rss+xml;'); //change to attachment if you want a web browser to download it as a file
 $patreon = new PatreonRSS($CREATOR_ID);
 
 //$patreon->rss();  // Output RSS Without Using Cache
