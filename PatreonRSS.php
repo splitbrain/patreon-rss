@@ -1,7 +1,7 @@
 <?php
 
 // set your creator ID here - you have to figure it out from the patreon HTML source code
-$CREATOR_ID = '3764669';
+$CREATOR_ID = '6107512';
 
 
 /**
@@ -69,16 +69,20 @@ class PatreonRSS
      */
     public function rss()
     {
-        $data = $this->getData();
-        echo '<?xml version="1.0"?>';
-        echo '<rss version="2.0">';
-        echo '<channel>';
-        $this->printRssChannelInfo($data['campaign'], $data['user']);
-        foreach ($data['posts'] as $item) {
-            $this->printRssItem($item);
+        if($data = $this->getData())
+        {
+            echo '<?xml version="1.0"?>';
+            echo '<rss version="2.0">';
+            echo '<channel>';
+            $this->printRssChannelInfo($data['campaign'], $data['user']);
+            foreach ($data['posts'] as $item) {
+                $this->printRssItem($item);
+            }
+            echo '</channel>';
+            echo '</rss>';
         }
-        echo '</channel>';
-        echo '</rss>';
+        else
+            return FALSE;
     }
 
     /**
@@ -138,28 +142,44 @@ class PatreonRSS
     protected function getData()
     {
         $url = $this->getURL();
-        $json = file_get_contents($url);
-        $data = json_decode($json, true);
 
-        $clean = array(
-            'posts' => array(),
-            'user' => array(),
-            'campaign' => array()
-        );
-        foreach ($data['data'] as $item) {
-            $clean['posts'][] = $item['attributes'];
-        }
-        foreach ($data['included'] as $item) {
-            if ($item['type'] == 'user') {
-                $clean['user'] = $item['attributes'];
-                $clean['user']['id'] = $item['id'];
-                continue;
+        $opts = array(
+            'http'=>array(
+              'method'=>"GET",
+              'header'=>"Content-Type: application/x-www-form-urlencoded\r\n".
+                        "User-Agent: Mozilla/5.0 (X11; Linux i686; rv:109.0) Gecko/20100101 Firefox/121.0\r\n" // Mimic Linux Firefox user agent
+            )
+          );
+          
+        $context = stream_context_create($opts);
+
+        if($json = file_get_contents($url,false,$context))
+        {
+            $data = json_decode($json, true);
+
+            $clean = array(
+                'posts' => array(),
+                'user' => array(),
+                'campaign' => array()
+            );
+            foreach ($data['data'] as $item) {
+                $clean['posts'][] = $item['attributes'];
             }
-            if ($item['type'] == 'campaign') {
-                $clean['campaign'] = $item['attributes'];
-                $clean['campaign']['id'] = $item['id'];
+            foreach ($data['included'] as $item) {
+                if ($item['type'] == 'user') {
+                    $clean['user'] = $item['attributes'];
+                    $clean['user']['id'] = $item['id'];
+                    continue;
+                }
+                if ($item['type'] == 'campaign') {
+                    $clean['campaign'] = $item['attributes'];
+                    $clean['campaign']['id'] = $item['id'];
+                }
             }
+    
         }
+        else
+            return FALSE;
 
         return $clean;
     }
@@ -173,19 +193,24 @@ class PatreonRSS
     {
         echo '<item>';
         echo '<title>';
-        echo htmlspecialchars($item['title']);
+        if(isset($item['title']))
+            echo htmlspecialchars($item['title']);
         echo '</title>';
         echo '<description>';
-        echo htmlspecialchars($item['content']);
+        if(isset($item['content']))
+            echo htmlspecialchars($item['content']);
         echo '</description>';
         echo '<link>';
-        echo htmlspecialchars($item['url']);
+        if(isset($item['url']))
+            echo htmlspecialchars($item['url']);
         echo '</link>';
         echo '<guid>';
-        echo htmlspecialchars($item['url']);
+        if(isset($item['url']))
+            echo htmlspecialchars($item['url']);
         echo '</guid>';
         echo '<pubDate>';
-        echo date('r', strtotime($item['published_at']));
+        if(isset($item['published_at']))
+            echo date('r', strtotime($item['published_at']));
         echo '</pubDate>';
         echo '</item>';
     }
@@ -213,4 +238,6 @@ class PatreonRSS
 // main
 header('Content-Type: application/rss+xml');
 $patreon = new PatreonRSS($CREATOR_ID);
+
+//$patreon->rss();  // Output RSS Without Using Cache
 $patreon->cachedRSS(__DIR__, 60*60); // cache for an hour
