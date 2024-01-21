@@ -257,5 +257,5 @@ class PatreonRSS
 header('Content-Type: application/rss+xml');
 $patreon = new PatreonRSS($CREATOR_ID);
 
-$patreon->rss();  // Output RSS Without Using Cache
-//$patreon->cachedRSS(__DIR__, 60*60); // cache for an hour
+//$patreon->rss();  // Output RSS Without Using Cache
+$patreon->cachedRSS(__DIR__, 60*60); // cache for an hour
