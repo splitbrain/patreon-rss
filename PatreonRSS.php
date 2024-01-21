@@ -224,14 +224,32 @@ class PatreonRSS
     protected function printRssChannelInfo($campaign, $user)
     {
         echo '<title>';
-        echo htmlspecialchars($campaign['creation_name'] . ' Patreon Posts');
+        echo htmlspecialchars($user['full_name'] . '\'s Patreon Posts');
         echo '</title>';
         echo '<description>';
-        echo htmlspecialchars(strip_tags($campaign['summary']));
+        if(isset($campaign['creation_name']))
+        {
+            echo htmlspecialchars(strip_tags($campaign['creation_name']));
+            echo "\n".htmlspecialchars("<hr>")."\n";
+        }
+        if(isset($campaign['summary']))
+            echo htmlspecialchars(strip_tags($campaign['summary']));
         echo '</description>';
         echo '<link>';
         echo htmlspecialchars($user['url']);
         echo '</link>';
+
+        if(isset($campaign["avatar_photo_image_urls"]))
+        {
+            if(isset($campaign["avatar_photo_image_urls"]["default"]))
+            {
+                echo "<image>";
+                echo "<link>".htmlspecialchars($user['url'])."</link>";
+                echo "<title>".htmlspecialchars($user['full_name'] . '\'s Patreon Posts')."</title>";
+                echo "<url>".htmlspecialchars($campaign["avatar_photo_image_urls"]["default"])."</url>";
+                echo "</image>";
+            }
+        }
     }
 }
 
@@ -239,5 +257,5 @@ class PatreonRSS
 header('Content-Type: application/rss+xml');
 $patreon = new PatreonRSS($CREATOR_ID);
 
-//$patreon->rss();  // Output RSS Without Using Cache
-$patreon->cachedRSS(__DIR__, 60*60); // cache for an hour
+$patreon->rss();  // Output RSS Without Using Cache
+//$patreon->cachedRSS(__DIR__, 60*60); // cache for an hour
